@@ -89,7 +89,9 @@ jobs:
           npm run lint
           npm run build
           npm test
+          mkdir -p /tmp/pack
           npm pack --pack-destination /tmp/pack
+          mkdir -p /tmp/scanner
           npm install --no-save --ignore-scripts --prefix /tmp/scanner @n8n/scan-community-package
           node scripts/scan-community-package.mjs /tmp/pack/n8n-nodes-mailsocket-*.tgz /tmp/scanner/node_modules/@n8n/scan-community-package/scanner/scanner.mjs
 
