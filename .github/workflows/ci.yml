@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# Cancel in-progress runs for the same branch/PR to avoid wasting CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: 'npm ci'
+
+      - name: Run lint
+        run: 'npm run lint'
+
+      - name: Run build
+        run: 'npm run build'
+
+      - name: Run tests
+        run: 'npm test'
+
+      - name: Pack the package
+        run: 'npm pack --pack-destination /tmp/pack'
+
+      # @n8n/scan-community-package's CLI only scans packages already
+      # published to npm (it fetches the tarball + npm-provenance
+      # attestation from the registry), so before the first publish there
+      # is nothing there to scan. This installs the scanner into an
+      # isolated temp directory (it pulls in its own pinned `typescript`
+      # alias, which conflicts with this project's own `tsc` bin if
+      # installed as a project devDependency) and runs its own exported
+      # `analyzePackage()` — the same rule set the CLI/`n8n-node lint`
+      # apply — against the just-packed local tarball. A dedicated Node
+      # 20 LTS job below also runs it against the scanner's supported
+      # runtime.
+      - name: Install the community-package scanner (isolated)
+        run: 'npm install --no-save --ignore-scripts --prefix /tmp/scanner @n8n/scan-community-package'
+
+      - name: Scan the packed tarball for community-package compliance
+        run: 'node scripts/scan-community-package.mjs /tmp/pack/n8n-nodes-mailsocket-*.tgz /tmp/scanner/node_modules/@n8n/scan-community-package/scanner/scanner.mjs'
+
+  scan-community-package:
+    name: Community package scan (Node 20 LTS)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: 'npm ci'
+
+      - name: Run build
+        run: 'npm run build'
+
+      - name: Pack the package
+        run: 'npm pack --pack-destination /tmp/pack'
+
+      - name: Install the community-package scanner (isolated)
+        run: 'npm install --no-save --ignore-scripts --prefix /tmp/scanner @n8n/scan-community-package'
+
+      - name: Scan the packed tarball for community-package compliance
+        run: 'node scripts/scan-community-package.mjs /tmp/pack/n8n-nodes-mailsocket-*.tgz /tmp/scanner/node_modules/@n8n/scan-community-package/scanner/scanner.mjs'

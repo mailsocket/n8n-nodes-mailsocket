@@ -1,0 +1,57 @@
+{
+    "name": "n8n-nodes-mailsocket",
+    "version": "0.1.0",
+    "description": "n8n community node for mailsocket — create throwaway inboxes and block on the OTP / magic link.",
+    "license": "MIT",
+    "homepage": "https://mailsocket.app",
+    "keywords": [
+        "n8n-community-node-package",
+        "mailsocket",
+        "otp",
+        "email",
+        "inbox",
+        "magic-link"
+    ],
+    "author": {
+        "name": "mailsocket",
+        "email": "sales@mailsocket.app"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mailsocket/n8n-nodes-mailsocket.git"
+    },
+    "scripts": {
+        "build": "n8n-node build",
+        "build:watch": "tsc --watch",
+        "dev": "n8n-node dev",
+        "lint": "n8n-node lint",
+        "lint:fix": "n8n-node lint --fix",
+        "test": "vitest run",
+        "release": "n8n-node release",
+        "prepublishOnly": "n8n-node prerelease"
+    },
+    "files": [
+        "dist"
+    ],
+    "n8n": {
+        "n8nNodesApiVersion": 1,
+        "strict": true,
+        "credentials": [
+            "dist/credentials/MailsocketApi.credentials.js"
+        ],
+        "nodes": [
+            "dist/nodes/Mailsocket/Mailsocket.node.js"
+        ]
+    },
+    "devDependencies": {
+        "@n8n/node-cli": "*",
+        "eslint": "9.32.0",
+        "prettier": "3.6.2",
+        "release-it": "^21.1.0",
+        "typescript": "5.9.2",
+        "vitest": "^2.1.0"
+    },
+    "peerDependencies": {
+        "n8n-workflow": "*"
+    }
+}
