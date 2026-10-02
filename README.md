@@ -2,7 +2,7 @@
 
 n8n community node for [mailsocket](https://mailsocket.app) — throwaway inboxes for AI agents and E2E tests. Create an inbox, hand its address to any signup form, then block a workflow until the OTP or magic link arrives. No polling code, no IMAP.
 
-This is an unofficial-looking name but is published and maintained by the mailsocket team.
+Official n8n community node, maintained by mailsocket.
 
 ## Installation
 
