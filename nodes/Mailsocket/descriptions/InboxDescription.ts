@@ -26,6 +26,13 @@ export const inboxOperations: INodeProperties[] = [
 				description: 'List your inboxes',
 				action: 'List inboxes',
 			},
+			{
+				name: 'Send Test Code',
+				value: 'sendTestCode',
+				description:
+					'Put one sample OTP email into the inbox (no mail server) to try a Wait for OTP without real email',
+				action: 'Send a test code to an inbox',
+			},
 		],
 		default: 'create',
 	},
@@ -48,6 +55,16 @@ export const inboxFields: INodeProperties[] = [
 		required: true,
 		description: 'The ID of the inbox to delete',
 		displayOptions: { show: { resource: ['inbox'], operation: ['delete'] } },
+	},
+	{
+		displayName: 'Inbox ID',
+		name: 'inboxId',
+		type: 'string',
+		default: '',
+		required: true,
+		description:
+			'The inbox to send the sample code to. The code is stored straight away, so a Wait for OTP that runs after this node needs Since set to a cutoff from before it (for example "0" on a fresh inbox, or the previous message ID). Limited to 5 per inbox and 20 per account per hour.',
+		displayOptions: { show: { resource: ['inbox'], operation: ['sendTestCode'] } },
 	},
 	{
 		displayName: 'Return All',

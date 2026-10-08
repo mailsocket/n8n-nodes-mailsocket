@@ -91,6 +91,14 @@ export class Mailsocket implements INodeType {
 						const inboxId = this.getNodeParameter('inboxId', itemIndex) as string;
 						await mailsocketApiRequest.call(this, 'DELETE', `/inboxes/${inboxId}`);
 						responseData = { deleted: inboxId };
+					} else if (operation === 'sendTestCode') {
+						const inboxId = this.getNodeParameter('inboxId', itemIndex) as string;
+						const result = (await mailsocketApiRequest.call(
+							this,
+							'POST',
+							`/inboxes/${inboxId}/test-code`,
+						)) as { data: IDataObject };
+						responseData = result.data;
 					} else if (operation === 'list') {
 						const returnAll = this.getNodeParameter('returnAll', itemIndex, false) as boolean;
 						const limit = this.getNodeParameter('limit', itemIndex, 50) as number;

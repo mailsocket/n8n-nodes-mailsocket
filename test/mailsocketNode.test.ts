@@ -85,6 +85,93 @@ describe('Mailsocket node execute()', () => {
 		expect(result[0][0].json).toEqual({ deleted: 'inbox_9' });
 	});
 
+	it('sends a test code: POST /inboxes/{id}/test-code with no body, returns message_id/sent_at', async () => {
+		const node = new Mailsocket();
+		const httpRequestWithAuthentication = vi
+			.fn()
+			.mockResolvedValue({ data: { message_id: 'msg_t1', sent_at: '2026-10-08T12:00:00Z' } });
+		const ctx = buildContext(
+			{ resource: 'inbox', operation: 'sendTestCode', params: { inboxId: 'inbox_7' } },
+			httpRequestWithAuthentication,
+		);
+
+		const result = await node.execute.call(ctx);
+
+		expect(httpRequestWithAuthentication).toHaveBeenCalledTimes(1);
+		const [credName, opts] = httpRequestWithAuthentication.mock.calls[0];
+		expect(credName).toBe('mailsocketApi');
+		expect(opts.method).toBe('POST');
+		expect(opts.url).toBe('https://dash.mailsocket.app/api/v1/inboxes/inbox_7/test-code');
+		expect(opts.body).toBeUndefined();
+		expect(result[0][0].json).toEqual({ message_id: 'msg_t1', sent_at: '2026-10-08T12:00:00Z' });
+		expect(result[0][0].pairedItem).toEqual({ item: 0 });
+	});
+
+	it('Send Test Code surfaces a 429 as a NodeApiError without the key', async () => {
+		const node = new Mailsocket();
+		const httpRequestWithAuthentication = vi.fn().mockRejectedValue(
+			Object.assign(new Error('Too many test codes. Try again at 13:00 UTC.'), {
+				httpCode: '429',
+				config: { headers: { Authorization: 'Bearer ms_live_secret_token_value' } },
+			}),
+		);
+		const ctx = buildContext(
+			{ resource: 'inbox', operation: 'sendTestCode', params: { inboxId: 'inbox_7' } },
+			httpRequestWithAuthentication,
+		);
+
+		let caught: unknown;
+		try {
+			await node.execute.call(ctx);
+		} catch (error) {
+			caught = error;
+		}
+		expect(caught).toBeDefined();
+		expect(JSON.stringify(caught)).not.toContain('ms_live_secret_token_value');
+		expect(String((caught as Error).message)).not.toContain('ms_live_secret_token_value');
+	});
+
+	it('exposes Send Test Code on the Inbox resource with its own Inbox ID field', () => {
+		const node = new Mailsocket();
+		const op = node.description.properties.find(
+			(p) => p.name === 'operation' && p.displayOptions?.show?.resource?.includes('inbox'),
+		);
+		const values = (op?.options as Array<{ value: string }>).map((o) => o.value);
+		expect(values).toContain('sendTestCode');
+		const field = node.description.properties.find(
+			(p) =>
+				p.name === 'inboxId' &&
+				p.displayOptions?.show?.resource?.includes('inbox') &&
+				(p.displayOptions?.show?.operation as string[] | undefined)?.includes('sendTestCode'),
+		);
+		expect(field?.required).toBe(true);
+	});
+
+	it.each([
+		['empty string', ''],
+		['whitespace', '   '],
+	])('Wait for OTP with an %s Since sends since=0, never since=', async (_label, since) => {
+		const node = new Mailsocket();
+		const httpRequestWithAuthentication = vi.fn().mockResolvedValue({
+			statusCode: 200,
+			headers: {},
+			body: { data: { otp: '111111', id: 'msg_1' } },
+		});
+		const ctx = buildContext(
+			{
+				resource: 'message',
+				operation: 'waitForOtp',
+				params: { inboxId: 'inbox_1', timeoutSeconds: 10, since },
+			},
+			httpRequestWithAuthentication,
+		);
+
+		await node.execute.call(ctx);
+
+		const [, opts] = httpRequestWithAuthentication.mock.calls[0];
+		expect(opts.qs.since).toBe('0');
+	});
+
 	it('returns an empty item when Get Latest hits a 404 with the default option', async () => {
 		const node = new Mailsocket();
 		const httpRequestWithAuthentication = vi.fn().mockRejectedValue(

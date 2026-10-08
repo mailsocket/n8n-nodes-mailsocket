@@ -192,7 +192,14 @@ export async function waitForMessage(
 	opts: WaitLoopOptions,
 ): Promise<WaitLoopOutcome> {
 	const deadline = Date.now() + clamp(opts.timeoutSeconds, 1, MAX_WAIT_TIMEOUT_SECONDS) * 1000;
-	const since = opts.since ?? '0';
+	// An empty Since field (cleared in the UI, or an expression that resolved
+	// to '' / whitespace) means the same as the default: '0'. The node must
+	// never send `since=` — the server reads an empty value as "request start
+	// time", which can miss a code that arrived before the wait began.
+	const since =
+		opts.since === undefined || opts.since === null || String(opts.since).trim() === ''
+			? '0'
+			: opts.since;
 
 	for (;;) {
 		const remainingMs = deadline - Date.now();

@@ -83,6 +83,38 @@ describe('waitForMessage', () => {
 		}
 	});
 
+	it.each([
+		['undefined', undefined],
+		['empty string', ''],
+		['whitespace', ' 	 '],
+	])('resolves a %s since to "0" (never sends since=)', async (_label, since) => {
+		const calls: Array<Record<string, unknown>> = [];
+		const httpRequestWithAuthentication = vi.fn().mockImplementation((_ctx, opts) => {
+			calls.push(opts.qs);
+			return Promise.resolve({ statusCode: 200, headers: {}, body: { data: { otp: '1', id: 'msg_1' } } });
+		});
+		const ctx = buildContext(httpRequestWithAuthentication);
+		await waitForMessage.call(ctx, {
+			inboxId: 'inbox_1',
+			require: 'otp',
+			timeoutSeconds: 10,
+			since: since as string | undefined,
+		});
+		expect(calls[0].since).toBe('0');
+	});
+
+	it('keeps an explicit since of 0 (number) and a message id as given', async () => {
+		const calls: Array<Record<string, unknown>> = [];
+		const httpRequestWithAuthentication = vi.fn().mockImplementation((_ctx, opts) => {
+			calls.push(opts.qs);
+			return Promise.resolve({ statusCode: 200, headers: {}, body: { data: { otp: '1', id: 'msg_1' } } });
+		});
+		const ctx = buildContext(httpRequestWithAuthentication);
+		await waitForMessage.call(ctx, { inboxId: 'i', require: 'otp', timeoutSeconds: 10, since: 0 });
+		await waitForMessage.call(ctx, { inboxId: 'i', require: 'otp', timeoutSeconds: 10, since: 'msg_9' });
+		expect(calls.map((c) => c.since)).toEqual([0, 'msg_9']);
+	});
+
 	it('shortens the last call to the remaining time near the deadline', async () => {
 		const calls: Array<Record<string, unknown>> = [];
 		let now = 0;
